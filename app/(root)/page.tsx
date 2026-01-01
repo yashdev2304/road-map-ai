@@ -28,18 +28,21 @@ const Index = () => {
     const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
     // const { toast } = useToast();
 
-    const handleFileSelect = async (file: File) => {
+    const handleFileSelect = async (file: File, userGoals?: string, desiredDirection?: string) => {
         setIsAnalyzing(true);
 
         try {
             // Validate PDF
             if (file.type !== "application/pdf") {
-                throw new Error("Only PDF files are allowed");
+                alert("Only PDF files are allowed");
+                return;
             }
 
             // Prepare FormData
             const formData = new FormData();
             formData.append("file", file);
+            if (userGoals) formData.append("userGoals", userGoals);
+            if (desiredDirection) formData.append("desiredDirection", desiredDirection);
 
             // Call Next.js API
             const response = await fetch("/api/parse-pdf", {
@@ -54,40 +57,28 @@ const Index = () => {
 
             const data = await response.json();
 
-            /**
-             * data structure:
-             * {
-             *   success: true,
-             *   metadata: {...},
-             *   content: {
-             *     fullText: string,
-             *     pages: []
-             *   }
-             * }
-             */
+            console.log("API Response:", data);
 
-            console.log("Parsed PDF:", data);
+            // Check if roadmap generation was successful
+            if (!data.success) {
+                throw new Error(data.error || "Failed to generate career roadmap");
+            }
 
-            // Example: store parsed text for AI analysis
-            // setAnalysisData(data.content.fullText);
+            // Check if roadmap data exists
+            if (!data.content?.roadmap?.data) {
+                throw new Error("No roadmap data returned from server");
+            }
 
-            // toast({
-            //   title: "Analysis Complete!",
-            //   description: "Your resume has been parsed successfully.",
-            // });
+            // Set the roadmap data for display
+            setAnalysisData(data.content.roadmap.data);
 
         } catch (error) {
             console.error("Analysis error:", error);
-
-            // toast({
-            //   title: "Analysis Failed",
-            //   description:
-            //     error instanceof Error
-            //       ? error.message
-            //       : "Something went wrong. Please try again.",
-            //   variant: "destructive",
-            // });
-
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "Something went wrong. Please try again."
+            );
         } finally {
             setIsAnalyzing(false);
         }

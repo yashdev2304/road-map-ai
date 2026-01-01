@@ -1,227 +1,141 @@
-import { AIMessage, SystemMessage } from "@langchain/core/messages";
-import { tool } from "@langchain/core/tools";
-import {
-    Annotation,
-    END,
-    MessagesAnnotation,
-    START,
-    StateGraph,
-} from "@langchain/langgraph";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import * as z from "zod";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // ===== Type Definitions =====
 
-const RoadmapSchema = z.object({
-    candidateProfile: z.object({
-        name: z.string(),
-        currentLevel: z.enum(["Beginner", "Fresher", "Intermediate"]),
-        primaryDomain: z.string(),
-        strengths: z.array(z.string()),
-        gaps: z.array(z.string()),
-    }),
-    recommendedRoles: z.array(
-        z.object({
-            role: z.string(),
-            matchScore: z.number().min(0).max(100),
-            reason: z.string(),
-        })
-    ),
-    learningRoadmap: z.array(
-        z.object({
-            phase: z.string(),
-            duration: z.string(),
-            focusAreas: z.array(z.string()),
-            resources: z.array(z.string()),
-            outcome: z.string(),
-        })
-    ),
-    projectSuggestions: z.array(
-        z.object({
-            title: z.string(),
-            description: z.string(),
-            skillsCovered: z.array(z.string()),
-        })
-    ),
-    next90DaysPlan: z.array(
-        z.object({
-            week: z.string(),
-            goals: z.array(z.string()),
-        })
-    ),
-});
+export interface CareerPath {
+    title: string;
+    description: string;
+    skills_to_develop: string[];
+    timeline: string;
+    potential_salary: string;
+    difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+}
 
-type Roadmap = z.infer<typeof RoadmapSchema>;
+export interface RoadmapData {
+    profile_summary: string;
+    current_skills: string[];
+    strengths: string[];
+    areas_for_improvement: string[];
+    career_paths: CareerPath[];
+    immediate_action_items: string[];
+    positive_feedback: string;
+}
 
 interface ParsedPdfContent {
     content: {
         fullText: string;
     };
+    userGoals?: string;
+    desiredDirection?: string;
+}
+
+interface RoadmapResult {
+    success: boolean;
+    data?: RoadmapData;
+    error?: string;
+    message?: string;
 }
 
 // ===== System Prompt =====
 
-const CAREER_SYSTEM_PROMPT = `You are an expert career counselor and technical recruiter with deep knowledge of the tech industry.
+const CAREER_SYSTEM_PROMPT = `You are an empowering career counselor and motivational coach specializing in tech careers. 
+Your mission is to inspire candidates while providing actionable career guidance.
 
-Your task is to analyze a candidate's resume and generate a comprehensive career roadmap.
-
-When you receive resume text, use the generateRoadmap tool to process it. After processing, provide:
-1. A detailed profile analysis identifying strengths and skill gaps
-2. Recommended roles with match scores (0-100) based on current skills
-3. A phased learning roadmap with specific resources and outcomes
-4. Practical project suggestions that demonstrate required skills
-5. A detailed 90-day action plan with weekly goals
-
-Be specific, actionable, and encouraging in your recommendations.`;
-
-// ===== Model Configuration =====
-
-const model = new ChatGoogleGenerativeAI({
-    model: "gemini-2.0-flash-exp", // or "gemini-1.5-flash"
-    apiKey: process.env.GOOGLE_API_KEY,
-    temperature: 0.7,
-});
-
-// ===== Tool Definition =====
-
-const generateRoadmap = tool(
-    async ({ resumeText }: { resumeText: string }) => {
-        // In a real implementation, this could:
-        // - Parse the resume for skills, experience, education
-        // - Query a database of job requirements
-        // - Generate personalized recommendations
-        
-        return {
-            resumeText,
-            message: "Resume analyzed successfully. Generating roadmap...",
-        };
-    },
+Analyze the resume and respond ONLY with valid JSON in this EXACT format (no additional text):
+{
+  "profile_summary": "A warm, encouraging 2-3 sentence summary highlighting their current position and potential",
+  "current_skills": ["skill1", "skill2", "skill3"],
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "areas_for_improvement": ["area 1", "area 2", "area 3"],
+  "career_paths": [
     {
-        name: "generateRoadmap",
-        description:
-            "Analyze parsed resume text and generate a future career roadmap with skills assessment, role recommendations, learning path, and action plan",
-        schema: z.object({
-            resumeText: z.string().describe("Full parsed resume text containing education, experience, skills, and projects"),
-        }),
+      "title": "Career Path Name",
+      "description": "Exciting description of this path",
+      "skills_to_develop": ["skill1", "skill2"],
+      "timeline": "6-12 months",
+      "potential_salary": "$70K - $100K",
+      "difficulty": "Intermediate"
     }
-);
-
-// ===== State Management =====
-
-const MessagesState = Annotation.Root({
-    ...MessagesAnnotation.spec,
-    llmCalls: Annotation<number>({
-        reducer: (x, y) => x + y,
-        default: () => 0,
-    }),
-});
-
-type StateType = typeof MessagesState.State;
-
-// ===== Graph Nodes =====
-
-const llmWithTools = model.bindTools([generateRoadmap]);
-
-async function llmCall(state: StateType): Promise<Partial<StateType>> {
-    const response = await llmWithTools.invoke([
-        new SystemMessage(CAREER_SYSTEM_PROMPT),
-        ...state.messages,
-    ]);
-
-    return {
-        messages: [response],
-        llmCalls: 1,
-    };
+  ],
+  "immediate_action_items": ["action 1", "action 2", "action 3", "action 4", "action 5"],
+  "positive_feedback": "An enthusiastic, motivating message celebrating their decision to grow and develop their career!"
 }
 
-const toolsByName: Record<string, typeof generateRoadmap> = {
-    generateRoadmap,
-};
-
-async function toolNode(state: StateType): Promise<Partial<StateType>> {
-    const lastMessage = state.messages[state.messages.length - 1];
-
-    if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
-        return { messages: [] };
-    }
-
-    const results = [];
-
-    for (const toolCall of lastMessage.tool_calls ?? []) {
-        const tool = toolsByName[toolCall.name];
-        if (tool) {
-            const observation = await tool.invoke(toolCall);
-            results.push(observation);
-        }
-    }
-
-    return { messages: results };
-}
-
-async function shouldContinue(state: StateType): Promise<"toolNode" | typeof END> {
-    const lastMessage = state.messages[state.messages.length - 1];
-
-    if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
-        return END;
-    }
-
-    if (lastMessage.tool_calls?.length) {
-        return "toolNode";
-    }
-
-    return END;
-}
-
-// ===== Agent Compilation =====
-
-const agent = new StateGraph(MessagesState)
-    .addNode("llmCall", llmCall)
-    .addNode("toolNode", toolNode)
-    .addEdge(START, "llmCall")
-    .addConditionalEdges("llmCall", shouldContinue, ["toolNode", END])
-    .addEdge("toolNode", "llmCall")
-    .compile();
+Be encouraging, specific, and actionable. Make them feel excited about their future!`;
 
 // ===== Main Execution Function =====
 
+// ... (Your interfaces and system prompt remain the same)
+
 export async function generateCareerRoadmap(
     parsedPdf: ParsedPdfContent
-): Promise<StateType> {
-    const result = await agent.invoke({
-        messages: [
-            {
-                role: "user",
-                content: `Here is the parsed resume data:
+): Promise<RoadmapResult> {
+    try {
+        if (!process.env.GOOGLE_API_KEY) {
+            throw new Error("GOOGLE_API_KEY is not configured.");
+        }
 
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+
+        // FIX 1: Use a valid model name (gemini-1.5-flash)
+        // FIX 2: Enable JSON mode for more reliable parsing
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json",
+            }
+        });
+
+        const prompt = `${CAREER_SYSTEM_PROMPT}
+
+Resume Content:
 ${parsedPdf.content.fullText}
 
-Generate a comprehensive future career roadmap including:
-- Candidate profile with strengths and gaps
-- Recommended roles with match scores
-- Phased learning roadmap
-- Project suggestions
-- 90-day action plan`,
-            },
-        ],
-    });
+${parsedPdf.userGoals ? `\nUser's Career Goals: ${parsedPdf.userGoals}` : ''}
+${parsedPdf.desiredDirection ? `\nDesired Direction: ${parsedPdf.desiredDirection}` : ''}
 
-    // Log messages for debugging
-    for (const message of result.messages) {
-        if ('_getType' in message) {
-            const type = message._getType();
-            const content = 'content' in message ? message.content : '';
-            console.log(`[${type}]: ${content}`);
+Please analyze this resume and provide career guidance in the specified JSON format.`;
+
+        console.log("Generating career roadmap...");
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const content = response.text().trim();
+
+        // FIX 3: Since we used application/json, we can usually parse directly, 
+        // but keeping your regex logic as a safety net is fine.
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
+            throw new Error("Could not extract JSON from AI response");
         }
-    }
 
-    return result;
+        const roadmapData: RoadmapData = JSON.parse(jsonMatch[0]);
+
+        if (!roadmapData.profile_summary || !roadmapData.career_paths) {
+            throw new Error("Invalid roadmap data structure received from AI");
+        }
+
+        console.log("✅ Career roadmap generated successfully!");
+
+        return {
+            success: true,
+            data: roadmapData,
+            message: "Career roadmap generated successfully!"
+        };
+
+    } catch (error: any) {
+        console.error("Failed to generate roadmap:", error);
+        return {
+            success: false,
+            error: error.message || "Unknown error occurred",
+            message: "Failed to generate career roadmap."
+        };
+    }
 }
 
-// ===== Example Usage =====
-
-export async function main() {
-    // Example parsed PDF data
-    const exampleParsedPdf: ParsedPdfContent = {
+// For testing purposes
+export async function testRoadmapGeneration() {
+    const examplePdf: ParsedPdfContent = {
         content: {
             fullText: `
 John Doe
@@ -238,26 +152,17 @@ SKILLS
 - Basic knowledge of AWS
 
 EXPERIENCE
-Junior Developer at ABC Corp (2022-2024)
-- Developed web applications using React
-- Collaborated with team of 5 developers
-- Fixed bugs and implemented new features
+Junior Developer at Tech Corp (2022-Present)
+- Built web applications using React
+- Collaborated with team on API development
 
 PROJECTS
-- E-commerce website using MERN stack
-- Weather app with React and OpenWeather API
+- E-commerce website with React and Node.js
+- Personal portfolio website
             `,
         },
     };
 
-    try {
-        const result = await generateCareerRoadmap(exampleParsedPdf);
-        console.log("\n✅ Career roadmap generated successfully!");
-        console.log(`Total LLM calls: ${result.llmCalls}`);
-    } catch (error) {
-        console.error("❌ Error generating roadmap:", error);
-    }
+    const result = await generateCareerRoadmap(examplePdf);
+    console.log(JSON.stringify(result, null, 2));
 }
-
-// Uncomment to run:
-// main().catch(console.error);

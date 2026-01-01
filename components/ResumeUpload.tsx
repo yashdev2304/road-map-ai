@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileText, X, AlertCircle } from 'lucide-react';
+import { Upload, FileText, X, AlertCircle, Target, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
  
 interface ResumeUploadProps {
-    onFileSelect: (file: File) => void;
+    onFileSelect: (file: File, userGoals?: string, desiredDirection?: string) => void;
     isAnalyzing: boolean;
 }
 
@@ -12,6 +12,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) => {
     const [dragActive, setDragActive] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [userGoals, setUserGoals] = useState('');
+    const [desiredDirection, setDesiredDirection] = useState('');
  
     const validateFile = (file: File): boolean => {
         if (file.type !== 'application/pdf') {
@@ -73,7 +75,7 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
 
     const handleAnalyze = () => {
         if (selectedFile) {
-            onFileSelect(selectedFile);
+            onFileSelect(selectedFile, userGoals, desiredDirection);
         }
     };
 
@@ -128,28 +130,75 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
                     </div>
                 </div>
             ) : (
-                <div className="border border-border rounded-2xl p-6 bg-card animate-scale-in">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-primary/10 rounded-xl">
-                            <FileText className="w-8 h-8 text-primary" />
-                        </div>
+                <div className="space-y-6">
+                    <div className="border border-border rounded-2xl p-6 bg-card animate-scale-in">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-xl">
+                                <FileText className="w-8 h-8 text-primary" />
+                            </div>
 
-                        <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground truncate">
-                                {selectedFile.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                {formatFileSize(selectedFile.size)}
-                            </p>
-                        </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-foreground truncate">
+                                    {selectedFile.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {formatFileSize(selectedFile.size)}
+                                </p>
+                            </div>
 
-                        <button
-                            onClick={handleRemoveFile}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            disabled={isAnalyzing}
-                        >
-                            <X className="w-5 h-5 text-muted-foreground" />
-                        </button>
+                            <button
+                                onClick={handleRemoveFile}
+                                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                disabled={isAnalyzing}
+                            >
+                                <X className="w-5 h-5 text-muted-foreground" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* User Goals Input Section */}
+                    <div className="border border-border rounded-2xl p-6 bg-card">
+                        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                            <Target className="w-5 h-5 text-purple-600" />
+                            Tell Us About Your Goals (Optional)
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Help us personalize your roadmap by sharing your career aspirations!
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="userGoals" className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                                    <Lightbulb className="w-4 h-4 text-yellow-500" />
+                                    What are your career goals?
+                                </label>
+                                <textarea
+                                    id="userGoals"
+                                    value={userGoals}
+                                    onChange={(e) => setUserGoals(e.target.value)}
+                                    placeholder="e.g., I want to become a senior full-stack developer, work on AI projects, or transition into cloud architecture..."
+                                    className="w-full px-4 py-3 border border-border rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                                    rows={3}
+                                    disabled={isAnalyzing}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="desiredDirection" className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                                    <Target className="w-4 h-4 text-blue-500" />
+                                    Which direction interests you most?
+                                </label>
+                                <input
+                                    id="desiredDirection"
+                                    type="text"
+                                    value={desiredDirection}
+                                    onChange={(e) => setDesiredDirection(e.target.value)}
+                                    placeholder="e.g., Frontend Development, Data Science, DevOps, Machine Learning..."
+                                    className="w-full px-4 py-3 border border-border rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    disabled={isAnalyzing}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <Button
@@ -157,7 +206,7 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
                         size="lg"
                         onClick={handleAnalyze}
                         disabled={isAnalyzing}
-                        className="w-full mt-6"
+                        className="w-full"
                     >
                         {isAnalyzing ? (
                             <>
@@ -165,7 +214,7 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
                                 Analyzing your resume...
                             </>
                         ) : (
-                            'Analyze My Resume'
+                            'Generate My Personalized Roadmap ✨'
                         )}
                     </Button>
                 </div>

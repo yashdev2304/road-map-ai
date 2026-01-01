@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData();
         const file = formData.get("file") as File | null;
+        const userGoals = formData.get("userGoals") as string | null;
+        const desiredDirection = formData.get("desiredDirection") as string | null;
 
         if (!file) {
             return NextResponse.json(
@@ -77,7 +79,12 @@ export async function POST(req: NextRequest) {
                         if (text.R) {
                             text.R.forEach((r: any) => {
                                 if (r.T) {
-                                    pageText += decodeURIComponent(r.T) + " ";
+                                    try {
+                                        pageText += decodeURIComponent(r.T) + " ";
+                                    } catch (error) {
+                                        // If decoding fails, use the raw text
+                                        pageText += r.T + " ";
+                                    }
                                 }
                             });
                         }
@@ -95,7 +102,11 @@ export async function POST(req: NextRequest) {
         await unlink(tempFilePath);
         tempFilePath = null;
 
-        const roadmap = await generateCareerRoadmap({ content: { fullText } });
+        const roadmap = await generateCareerRoadmap({ 
+            content: { fullText },
+            userGoals: userGoals || undefined,
+            desiredDirection: desiredDirection || undefined
+        });
         return NextResponse.json({
             success: true,
             metadata: {
