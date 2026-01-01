@@ -89,7 +89,7 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
         <div className="w-full max-w-2xl mx-auto">
             {!selectedFile ? (
                 <div
-                    className={`relative border-2 border-dashed rounded-2xl p-12 transition-all duration-300 cursor-pointer group ${dragActive
+                    className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 cursor-pointer group ${dragActive
                         ? 'border-primary bg-primary/5 scale-[1.02]'
                         : 'border-border hover:border-primary/50 hover:bg-muted/30'
                         }`}
@@ -105,43 +105,43 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
 
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className={`p-4 rounded-2xl transition-all duration-300 ${dragActive
+                    <div className="flex flex-col items-center gap-3 text-center">
+                        <div className={`p-3 rounded-xl transition-all duration-300 ${dragActive
                             ? 'gradient-primary shadow-glow'
                             : 'bg-primary/10 group-hover:bg-primary/20'
                             }`}>
-                            <Upload className={`w-8 h-8 transition-colors ${dragActive ? 'text-primary-foreground' : 'text-primary'
+                            <Upload className={`w-6 h-6 transition-colors ${dragActive ? 'text-primary-foreground' : 'text-primary'
                                 }`} />
                         </div>
 
                         <div>
-                            <p className="text-lg font-semibold text-foreground">
+                            <p className="text-base font-semibold text-foreground">
                                 {dragActive ? 'Drop your resume here' : 'Drag & drop your resume'}
                             </p>
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 or click to browse files
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-4 py-2 rounded-full">
-                            <AlertCircle className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+                            <AlertCircle className="w-3 h-3" />
                             <span>PDF only • Max 10MB</span>
                         </div>
                     </div>
                 </div>
             ) : (
-                <div className="space-y-6">
-                    <div className="border border-border rounded-2xl p-6 bg-card animate-scale-in">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-xl">
-                                <FileText className="w-8 h-8 text-primary" />
+                <div className="space-y-4">
+                    <div className="border border-border rounded-xl p-4 bg-card animate-scale-in">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                                <FileText className="w-6 h-6 text-primary" />
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-foreground truncate">
+                                <p className="font-medium text-sm text-foreground truncate">
                                     {selectedFile.name}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                     {formatFileSize(selectedFile.size)}
                                 </p>
                             </div>
@@ -157,35 +157,32 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
                     </div>
 
                     {/* User Goals Input Section */}
-                    <div className="border border-border rounded-2xl p-6 bg-card">
-                        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                            <Target className="w-5 h-5 text-purple-600" />
+                    <div className="border border-border rounded-xl p-4 bg-card">
+                        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                            <Target className="w-4 h-4 text-purple-600" />
                             Tell Us About Your Goals (Optional)
                         </h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Help us personalize your roadmap by sharing your career aspirations!
-                        </p>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div>
-                                <label htmlFor="userGoals" className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                                    <Lightbulb className="w-4 h-4 text-yellow-500" />
+                                <label htmlFor="userGoals" className="flex items-center gap-2 text-xs font-medium text-foreground mb-1">
+                                    <Lightbulb className="w-3 h-3 text-yellow-500" />
                                     What are your career goals?
                                 </label>
                                 <textarea
                                     id="userGoals"
                                     value={userGoals}
                                     onChange={(e) => setUserGoals(e.target.value)}
-                                    placeholder="e.g., I want to become a senior full-stack developer, work on AI projects, or transition into cloud architecture..."
-                                    className="w-full px-4 py-3 border border-border rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                                    rows={3}
+                                    placeholder="e.g., I want to become a senior full-stack developer..."
+                                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                                    rows={2}
                                     disabled={isAnalyzing}
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="desiredDirection" className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                                    <Target className="w-4 h-4 text-blue-500" />
+                                <label htmlFor="desiredDirection" className="flex items-center gap-2 text-xs font-medium text-foreground mb-1">
+                                    <Target className="w-3 h-3 text-blue-500" />
                                     Which direction interests you most?
                                 </label>
                                 <input
@@ -193,8 +190,8 @@ export const ResumeUpload = ({ onFileSelect, isAnalyzing }: ResumeUploadProps) =
                                     type="text"
                                     value={desiredDirection}
                                     onChange={(e) => setDesiredDirection(e.target.value)}
-                                    placeholder="e.g., Frontend Development, Data Science, DevOps, Machine Learning..."
-                                    className="w-full px-4 py-3 border border-border rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    placeholder="e.g., Frontend Development, Data Science, DevOps..."
+                                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     disabled={isAnalyzing}
                                 />
                             </div>
